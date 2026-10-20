@@ -55,6 +55,51 @@ python chat.py       # start the chat
 
 Chat commands: `/exit`, `/clear` (delete history), `/sources` (list indexed sections), `/debug` (show scores and why a question was refused).
 
+## Tests
+
+Activate the virtual environment from the setup instructions, then run:
+
+```bash
+python -m pytest
+```
+
+The default suite is offline: model calls are mocked, history uses temporary
+SQLite files, and Chroma retrieval uses a temporary database with deterministic
+test embeddings. To run the optional Ollama smoke test, start Ollama, make sure
+the configured chat model is installed, then run this in PowerShell:
+
+```powershell
+$env:RUN_LIVE_OLLAMA_TESTS = "1"
+python -m pytest -m live
+```
+
+### Answer-quality evaluation
+
+The tests validate code paths; they do not establish that a model consistently
+answers policy questions correctly. Run the separate evaluation against the
+configured knowledge base and local Ollama model after rebuilding the index:
+
+```powershell
+python ingest.py
+python evaluate_chatbot.py --json-out evaluation-results.json
+```
+
+The evaluation checks a small set of representative in-scope and out-of-scope
+questions for required facts, expected refusal behavior, and source labels. Add
+reviewed cases to `eval_cases.json` whenever policies or prompts change. Review
+the generated answers and results manually; keyword checks are a regression
+signal, not a semantic correctness guarantee.
+
+## Production readiness
+
+This repository is a local demo, not a production service. Before exposing it
+to customers, an owner should review and approve the evaluation cases and
+thresholds, test the actual deployment environment and failure recovery, and
+arrange monitoring, access control, data-retention, backup, and incident
+response policies. Chat history is stored in a local SQLite database and is
+not encrypted by this application; protect the host and its files accordingly.
+Safety-sensitive answers require human review and escalation procedures.
+
 ## Changing the knowledge base
 
 1. Edit `documents/northstar_knowledge_base.md` (use `#` to `####` headings, ideally one customer question per heading).

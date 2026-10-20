@@ -367,8 +367,12 @@ def looks_like_followup(question):
 
 
 #return window check
-RETURN_INTENT = re.compile(r"\breturn(?:s|ing)?\b", re.IGNORECASE)
+RETURN_INTENT = re.compile(r"\breturn(?:s|ed|ing)?\b", re.IGNORECASE)
 DAYS_AGO = re.compile(r"(\d+)\s*(?:calendar\s+)?days?\s+ago", re.IGNORECASE)
+RETURN_DURATION = re.compile(
+    r"\b(\d+)\s*[- ]?\s*(?:(?:calendar|business)\s+)?days?\b",
+    re.IGNORECASE,
+)
 
 #if the message talks about any of these, "N days ago" may not mean "N days since delivery"
 NOT_DELIVERY_DAYS = re.compile(
@@ -401,6 +405,29 @@ def return_window_note(question, search_query):
            "Standard returns are no longer available, but support can review defects or exceptional circumstances. ")
         + "State this first and do not contradict it."
     )
+
+
+def has_unsupported_return_duration(question, answer, context, verified_note):
+    if not RETURN_INTENT.search(question):
+        return False
+
+    claimed_days = {int(match) for match in RETURN_DURATION.findall(answer)}
+    if not claimed_days:
+        return False
+
+    return_evidence = [
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", context)
+        if RETURN_INTENT.search(sentence)
+    ]
+    supported_days = {
+        int(match)
+        for match in RETURN_DURATION.findall(
+            "\n".join([verified_note, *return_evidence])
+        )
+    }
+    return not claimed_days.issubset(supported_days)
+
 
 #history aware query rewriting
 def rewrite_question(question, history):
@@ -625,7 +652,13 @@ def _answer_question(question, history):
     
     response = answer_llm.invoke(messages)
     answer = str(response.content).strip()
-    
+
+    if has_unsupported_return_duration(
+        question, answer, context, verdict_note
+    ):
+        if DEBUG:
+            print("[debug] refused an unsupported return-duration claim")
+        return REFUSAL, []
 
     #the model refused, or returned nothing (or only [Source N] tags), so do not attach any sources
     if not answer or REFUSAL in answer or not strip_citations(answer):
@@ -737,7 +770,7 @@ def main():
         if answer in (REFUSAL, GREETING_REPLY, CLOSING_REPLY):
             continue
 
-        save_message("user", question)
+        save_message("user", mask_sensitive(question))
         save_message("assistant", strip_citations(answer))
 
 
