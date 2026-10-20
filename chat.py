@@ -45,6 +45,9 @@ RETRIEVAL_K = 5              #chunks fetched per question
 MIN_RELEVANCE_SCORE = 0.60   #minimum relevance score for retrieved chunks 
 MAX_CONTENT_CHARS = 14000    #maximum retrieved text sent to the model
 
+#bypass gate 2 if there's a strong match
+GATE_BYPASS_SCORE = 0.70
+
 #if False, the YES/NO scope and evidence check (gate 2) is skipped, useful for finding out if it rejects too much
 USE_SCOPE_GATE = True
 
@@ -75,21 +78,49 @@ GREETING_REPLY = (
 #reply for thanks, "no" and goodbyes
 CLOSING_REPLY = "You're welcome! If you need anything else, just ask."
 
+#lowercases and removes apostrophes and punctuation, so "That\u2019s all!!" and "that's  all" compare equal
+def normalize_text(text):
+    text = text.lower().replace("\u2019", "'").replace("'", "")
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text).split())
+
 #messages that are treated as greetings instead of questions
-GREETINGS = {
+GREETINGS = {normalize_text(t) for t in(
     "hi", "hello", "hey", "hi there", "hello there",
     "good morning", "good afternoon", "good evening"
-}
+)}
 
 #messages that end a topic (thanks, "no" to an offer, goodbyes)
-CLOSERS = {
+CLOSERS = {normalize_text(t) for t in(
     "thanks", "thank you", "thx", "ok", "okay",
     "no", "nope", "no thanks", "no thank you",
     "that's all", "thats all", "bye", "goodbye"
+)}
+
+
+CLOSER_ANCHORS = {"thanks", "thank", "thx", "ty", "bye", "goodbye", "cheers", "ok", "okay", "appreciate", "thats"}
+CLOSER_FILLER = CLOSER_ANCHORS | {
+    "alright", "great", "perfect", "cool", "awesome", "nice", "good", "got", "it", "you", "so", "very", "much",
+    "a", "lot", "that", "all", "i", "needed", "no", "nope", "nothing", "else", "for", "your", "the", "help",
+    "day", "take", "care", "see", "later",
 }
 
+def is_closer(normalized):
+    if normalized in CLOSERS:
+        return True
+    words = normalized.split()
+    return (
+        0 < len(words) <= 7
+        and all(w in CLOSER_FILLER for w in words)
+        and any(w in CLOSER_ANCHORS for w in words)
+    )
+
 #short replies that say "yes" to the assistant's last message
-CONFIRMATIONS = {"yes", "yeah", "yep", "yes please", "sure", "please", "ok please"}
+CONFIRMATIONS = {normalize_text(t) for t in (
+    "yes", "yeah", "yep", "yes please", "sure", "please", "ok please",
+)}
+
+#short replies that say "no" (a goodbye, unless the assistant just asked a question)
+NEGATIONS = {"no", "nope"}
 
 #startup checks
 if not SCOPE_FILE.exists():
@@ -191,6 +222,26 @@ def load_history(session_id="default"):
     rows.reverse()
     return rows
 
+
+#sensitive details are masked before anything is written to the history database
+CARD_NUMBER = re.compile(r"(?<!\d)(?:\d[ .,-]{0,2}){12,18}\d(?!\d)")   #13 to 19 digits, optionally grouped
+SECURITY_CODE = re.compile(
+    r"\b(?P<label>cvv2?|cvc2?|security code|verification code|one[- ]time code|otp|recovery code|pin)\b"
+    r"(?P<sep>\W{0,5}(?:is|was)?\W{0,5})(?P<code>\d{3,8})\b",
+    re.IGNORECASE,
+)
+PASSWORD = re.compile(
+    r"\b(password|passcode|passphrase|pwd)\b(\s*(?:is|was|:|=)\s*)"
+    r"(?!(?:not|wrong|incorrect|invalid|expired|working|being|correct|reset|changed|updated|rejected|accepted)\b)\S+",
+    re.IGNORECASE,
+)
+
+
+def mask_sensitive(text):
+    text = CARD_NUMBER.sub("[card number removed]", text)
+    text = SECURITY_CODE.sub(lambda m: f"{m.group('label')}{m.group('sep')}[code removed]", text)
+    text = PASSWORD.sub(lambda m: f"{m.group(1)}{m.group(2)}[password removed]", text)
+    return text
 
 #save a single message
 def save_message(role, content, session_id="default"):
@@ -314,6 +365,43 @@ def looks_like_followup(question):
     #a pronoun with no product named is also a follow-up
     return bool(FOLLOWUP_WORDS.search(question)) and not PRODUCT_WORDS.search(question)
 
+
+#return window check
+RETURN_INTENT = re.compile(r"\breturn(?:s|ing)?\b", re.IGNORECASE)
+DAYS_AGO = re.compile(r"(\d+)\s*(?:calendar\s+)?days?\s+ago", re.IGNORECASE)
+
+#if the message talks about any of these, "N days ago" may not mean "N days since delivery"
+NOT_DELIVERY_DAYS = re.compile(
+    r"\b(?:ordered|placed|bought|purchased|paid|shipped|dispatched|returned|"
+    r"refunded|cancell?ed|contacted|emailed|called)\b",
+    re.IGNORECASE,
+)
+
+
+#deterministic return-window check so the small model doesn't have to compare numbers
+#it only produces a note when the message clearly says how many days ago the item was received,
+#in every other case it stays silent and the model answers from the policy text
+def return_window_note(question, search_query):
+    if not RETURN_INTENT.search(f"{question} {search_query}"):
+        return ""
+    if NOT_DELIVERY_DAYS.search(question):
+        return ""
+    numbers = set(DAYS_AGO.findall(question))
+    if len(numbers) != 1:
+        return ""
+
+    days = int(numbers.pop())
+    inside = days <= 30
+    return (
+        f"VERIFIED FACT: the customer received the item {days} days ago. "
+        f"The return window is 30 calendar days from delivery, so the customer is "
+        f"{'WITHIN' if inside else 'OUTSIDE'} the window. "
+        + ("They may return it; they must request return authorization first. "
+           if inside else
+           "Standard returns are no longer available, but support can review defects or exceptional circumstances. ")
+        + "State this first and do not contradict it."
+    )
+
 #history aware query rewriting
 def rewrite_question(question, history):
     #turns a follow-up question into a standalone search query
@@ -404,23 +492,85 @@ def is_answerable(question, history, context):
     return not verdict.startswith("NO")
 
 
-#answer generation
+#true when the assistant's last message asked the customer something, so a bare "yes" or "no" is an answer to it
+def awaiting_answer(history):
+    for role, content in reversed(history):
+        if role == "assistant":
+            return "?" in content
+    return False
+
+
+#the customer's most recent real question, skipping bare "yes" or "no" replies
+def last_real_question(history):
+    for role, content in reversed(history):
+        if role == "user" and normalize_text(content) not in CONFIRMATIONS | NEGATIONS:
+            return content
+    return None
+
+
+#words that mean the customer may be describing a safety problem, these must never be refused by the YES/NO gate
+SAFETY_WORDS = re.compile(
+    r"\b(?:burn\w*|smok\w*|spark\w*|overheat\w*|melt\w*|fire|flames?|electrocue\w*|shock\w*|leak\w*)\b",
+    re.IGNORECASE,
+)
+
+#shown before the standard refusal when a safety question could not be answered from the knowledge base
+SAFETY_NOTICE = (
+    "If your product is smoking, sparking, overheating, leaking or smells burnt, stop using it now and "
+    "disconnect power only if it is safe. If there is fire, heavy smoke or immediate danger, move away and "
+    "call local emergency services."
+)
+
+#shown when the customer shared a password, code or card number
+SENSITIVE_WARNING = (
+    "Please don't share passwords, one-time codes, recovery codes, full card numbers or card security codes "
+    "in chat. Northstar Home never asks for them, and what you shared has not been used or saved."
+)
+SENSITIVE_HELP = (
+    "If you are having trouble signing in or with a payment, describe the problem without those details, "
+    "for example the error message you see."
+)
+
+#public entry point: masks sensitive details first so no model, search or log ever sees them,
+#then adds the safety notice or the sensitive-data warning where needed
 def answer_question(question, history):
+    masked = mask_sensitive(question)
+    answer, sources = _answer_question(masked, history)
+
+    if answer == REFUSAL and SAFETY_WORDS.search(masked):
+        answer = f"{SAFETY_NOTICE}\n\n{REFUSAL}"
+
+    if masked != question:
+        if answer in (REFUSAL, GREETING_REPLY, CLOSING_REPLY):
+            return f"{SENSITIVE_WARNING} {SENSITIVE_HELP}", []
+        answer = f"{SENSITIVE_WARNING}\n\n{answer}"
+
+    return answer, sources
+
+
+#answer generation
+def _answer_question(question, history):
     #answer greetings and closers directly, they are not questions for the knowledge base
-    normalized = question.lower().strip(" !.?,")
+    normalized = normalize_text(question)
     if normalized in GREETINGS:
         return GREETING_REPLY, []
-    if normalized in CLOSERS:
+
+    #"no" is only a goodbye when the assistant did not just ask something
+    pending_question = awaiting_answer(history)
+    if is_closer(normalized) and not (pending_question and normalized in NEGATIONS):
         return CLOSING_REPLY, []
 
-    #a short "yes" answers the assistant's last message, so it cannot be rewritten into a question
-    #search for the customer's previous question instead and let the history provide the context
-    is_confirmation = normalized in CONFIRMATIONS
+    #a short "yes" or "no" answers the assistant's last question, so it cannot be rewritten into a question
+    #search for the customer's previous real question instead and let the history provide the context
+    #with no question pending, a bare "yes" is just an ordinary (unanswerable) message
+    is_confirmation = pending_question and normalized in (CONFIRMATIONS | NEGATIONS)
     if is_confirmation:
-        previous = [content for role, content in history if role == "user"]
-        search_query = previous[-1] if previous else question
+        search_query = last_real_question(history) or question
         if DEBUG:
             print(f"[debug] confirmation, searching with the previous question: {search_query}")
+    elif normalized in CONFIRMATIONS:
+        #nothing is pending, so there is nothing for "yes" to refer to
+        search_query = question
     else:
         #rewrite follow-ups so references like "it" are resolved before searching
         search_query = rewrite_question(question, history)
@@ -437,23 +587,14 @@ def answer_question(question, history):
 
     context = build_context(results)
     
-    #deterministic return-window check so the small model doesn't have to compare numbers
-    verdict_note = ""
-    m = re.search(r"(\d+)\s*days?", question, flags=re.IGNORECASE)
-    if m and "return" in (question + " " + search_query).lower():
-        days = int(m.group(1))
-        inside = days <= 30
-        verdict_note = (
-            f"VERIFIED FACT: the customer received the item {days} days ago. "
-            f"The return window is 30 calendar days from delivery, so the customer is "
-            f"{'WITHIN' if inside else 'OUTSIDE'} the window. "
-            + ("They may return it; they must request return authorization first. "
-               if inside else
-               "Standard returns are no longer available, but support can review defects or exceptional circumstances. ")
-            + "State this first and do not contradict it."
-        )
+    verdict_note = return_window_note(question, search_query)
     #gate 2: scope and evidence (uses the rewritten query so follow-ups make sense)
-    if USE_SCOPE_GATE and not is_answerable(search_query, history, context):
+    #skipped for very strong matches and for safety questions, the tiny YES/NO model must not veto those
+    top_score = max(score for _doc, score in results)
+    skip_gate = top_score >= GATE_BYPASS_SCORE or bool(SAFETY_WORDS.search(f"{question} {search_query}"))
+    if DEBUG and skip_gate:
+        print("[debug] gate 2 skipped: strong match or safety question")
+    if USE_SCOPE_GATE and not skip_gate and not is_answerable(search_query, history, context):
         if DEBUG:
             print("[debug] refused at gate 2: scope/evidence check said NO")
         return REFUSAL, []
@@ -486,8 +627,8 @@ def answer_question(question, history):
     answer = str(response.content).strip()
     
 
-    #the model refused (or returned nothing), so do not attach any sources
-    if not answer or REFUSAL in answer:
+    #the model refused, or returned nothing (or only [Source N] tags), so do not attach any sources
+    if not answer or REFUSAL in answer or not strip_citations(answer):
         if DEBUG:
             print("[debug] refused by the answer model (empty or returned the refusal text)")
         return REFUSAL, []
@@ -513,8 +654,7 @@ def answer_question(question, history):
         ))
 
     return answer, sources
-
-
+   
 #CLI
 def main():
     global DEBUG
@@ -572,6 +712,10 @@ def main():
 
         try:
             answer, sources = answer_question(question, history)
+        except KeyboardInterrupt:
+            #ctrl+c while the model is working cancels this question only, nothing is saved
+            print("\nCancelled. Ask another question or type /exit.")
+            continue
         except Exception as exc:
             #connection problems are most likely caused by ollama not running
             if "connect" in str(exc).lower():
