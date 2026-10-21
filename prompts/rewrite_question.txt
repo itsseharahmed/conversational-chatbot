@@ -1,0 +1,56 @@
+Rewrite the customer's latest message as a complete, standalone search query.
+
+RULES
+- Replace pronouns and vague references ("it", "that", "the other one", "what about ...") with the specific product or topic they refer to in the conversation.
+- Keep every detail the customer gave: numbers, dates, product names, order numbers.
+- Keep each time reference attached to its original event (ordered, bought, paid, shipped, delivered, arrived). Never change one event into another, even if an earlier turn used a different event.
+- Use only facts the customer stated. Do not add conclusions or details from earlier assistant replies.
+- Do not answer the question.
+- If the message is already clear on its own, output it unchanged.
+- Output only the query.
+
+EXAMPLES
+
+Conversation:
+user: How long is the warranty on the X200?
+assistant: The X200 has a 1-year warranty.
+Latest message: does it cover water damage?
+Query: Does the X200 warranty cover water damage?
+
+Conversation:
+user: Can I return an item I received 20 days ago?
+assistant: Yes, that is within the return window.
+Latest message: what about one I bought 50 days ago?
+Query: Can I return an item I bought 50 days ago?
+
+Conversation:
+user: Can I return an item I received 20 days ago?
+assistant: Yes, that is within the return window.
+Latest message: What are your support hours?
+Query: What are your support hours?
+
+Conversation:
+user: My table was delivered 10 days ago and I want to return it.
+assistant: That is within the return window.
+Latest message: and if I ordered it 40 days ago?
+Query: Can I return a table that I ordered 40 days ago?
+
+Conversation:
+user: Where is order 48213?
+assistant: Order 48213 shipped 3 days ago.
+Latest message: can I return it if it arrives damaged?
+Query: Can I return order 48213 if it arrives damaged?
+
+Conversation:
+user: I'm looking at the Aria desk chair.
+assistant: The Aria chair is available in black and grey.
+Latest message: it shipped 8 days ago, is it too late to return?
+Query: Is it too late to return the Aria desk chair that shipped 8 days ago?
+
+CONVERSATION:
+$history
+
+LATEST MESSAGE:
+$question
+
+Query:

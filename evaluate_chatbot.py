@@ -4,6 +4,7 @@ import argparse
 import json
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -64,6 +65,36 @@ def grade_case(case, answer, sources):
     return errors
 
 
+def source_labels_for_citations(citations, retrieved, source_label):
+    """Translate cited result positions into their human-readable source labels."""
+    labels = []
+    for number in citations:
+        if isinstance(number, int) and 1 <= number <= len(retrieved):
+            document, _score = retrieved[number - 1]
+            labels.append(source_label(document.metadata))
+    return labels
+
+
+def answer_with_source_labels(chat, question, history):
+    """Use the retrieval that produced the answer to resolve its citations."""
+    retrieved_results = []
+    original_retrieve = chat.retrieve
+
+    def capture_retrieval(query):
+        results = original_retrieve(query)
+        retrieved_results.append(results)
+        return results
+
+    with patch.object(chat, "retrieve", side_effect=capture_retrieval):
+        answer, citations = chat.answer_question(question, history)
+
+    retrieved = retrieved_results[-1] if retrieved_results else []
+    labels = source_labels_for_citations(
+        citations, retrieved, chat.source_label
+    )
+    return answer, labels
+
+
 def run_evaluation(cases, answer_question):
     """Run every case and collect outputs, source labels, timings, and failures."""
     results = []
@@ -116,7 +147,12 @@ def main():
     # Import only when executing the evaluation so the checker itself is testable offline.
     import chat
 
-    results = run_evaluation(cases, chat.answer_question)
+    results = run_evaluation(
+        cases,
+        lambda question, history: answer_with_source_labels(
+            chat, question, history
+        ),
+    )
     for result in results:
         label = "PASS" if result["passed"] else "FAIL"
         print(

@@ -8,7 +8,7 @@ A customer support chatbot for a fictional online store. It answers questions **
 
 1. The question is rewritten into a standalone query if it is a follow-up.
 2. The knowledge base is searched. If nothing is relevant enough, the bot refuses.
-3. A quick YES/NO check confirms the question is in scope and the evidence answers it.
+3. A scope and evidence check allows an answer only when the model returns `ANSWERABLE`.
 4. The model writes the answer using only the retrieved text, following `rules.txt`.
 5. The chat is saved to a local history database, with card numbers and passwords masked.
 
@@ -18,11 +18,16 @@ Anything it can't answer gets a standard refusal that points to a human agent.
 
 ```
 chatbot/
-├── chat.py                 # the chatbot (retrieval, checks, answers, history, CLI)
+├── chat.py                 # chatbot orchestration and entry point
+├── chat_prompts.py         # prompt and policy loading
+├── chat_history.py         # SQLite conversation storage
+├── chat_safety.py          # sensitive-data masking and safety guidance
+├── chat_citations.py       # source labels and citation parsing
 ├── ingest.py               # builds the searchable database from the knowledge base
 ├── embeddings.py           # embedding helper shared by ingest.py and chat.py
 ├── scope.txt               # approved topics
 ├── rules.txt               # tone and safety rules
+├── prompts/                # question-rewrite, scope-check and answer prompts
 ├── requirements.txt        # Python dependencies
 ├── documents/
 │   └── northstar_knowledge_base.md
@@ -34,7 +39,7 @@ chatbot/
 1. Install [Ollama](https://ollama.com) and pull the models:
 
 ```bash
-ollama pull llama3.2
+ollama pull qwen2.5:7b
 ollama pull nomic-embed-text
 ```
 
@@ -51,9 +56,10 @@ pip install -r requirements.txt
 ```bash
 python ingest.py     # build the knowledge base (re-run whenever the document changes)
 python chat.py       # start the chat
+python chat.py --session customer-123  # resume a named conversation
 ```
 
-Chat commands: `/exit`, `/clear` (delete history), `/sources` (list indexed sections), `/debug` (show scores and why a question was refused).
+Each launch without `--session` creates a fresh conversation ID, preventing prior-run history from leaking into a new chat. The ID is printed at startup. Use `--session <id>` to resume it later; `/clear` clears only the active session. Chat commands: `/exit`, `/clear`, `/sources` (list indexed sections), `/debug` (show scores and why a question was refused). When enabled, answer citations are displayed as source numbers, such as `Sources: 1, 2`.
 
 ## Tests
 

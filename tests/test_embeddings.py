@@ -32,8 +32,8 @@ def test_query_embeddings_add_search_query_prefix(monkeypatch):
     captured = []
     monkeypatch.setattr(
         OllamaEmbeddings,
-        "embed_query",
-        lambda self, text: captured.append(text) or [1.0],
+        "embed_documents",
+        lambda self, texts: captured.extend(texts) or [[1.0]],
     )
     embedder = PrefixedOllamaEmbeddings(model="unused-in-test")
 

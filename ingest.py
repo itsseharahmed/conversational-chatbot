@@ -102,16 +102,25 @@ def main():
     print(f"Loading embeddings model: '{EMBEDDING_MODEL}'...")
     embeddings = PrefixedOllamaEmbeddings(model=EMBEDDING_MODEL)
 
+    #check that the embedding model works before touching the old collection, otherwise a stopped Ollama or a missing
+    #model would leave the chatbot with no knowledge base at all (the old one is deleted first)
+    embeddings.embed_query("test")
+
     DB_DIR.mkdir(parents=True, exist_ok=True)
 
-    try: 
+    try:
         old_db = Chroma(persist_directory=str(DB_DIR), collection_name=COLLECTION, embedding_function=embeddings,)
         old_db.delete_collection()
         print(f"Removed previous collection.")
     except Exception as e:
         print(f"No previous collection removed ({e})")
 
-    Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory=str(DB_DIR), collection_name=COLLECTION, collection_metadata={"hnsw:space": "cosine"},)
+    db = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory=str(DB_DIR), collection_name=COLLECTION, collection_metadata={"hnsw:space": "cosine"},)
+
+    #a half-built collection would pass the "not empty" check in main.py, so make sure everything was stored
+    stored = len(db.get()["ids"])
+    if stored != len(chunks):
+        raise RuntimeError(f"Only {stored} of {len(chunks)} chunks were stored. Please run ingest.py again.")
 
     print(f"Knowledge base created successfully.")
     print(f"Source file: {DOCUMENT_FILE.name}")

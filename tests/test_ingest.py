@@ -92,9 +92,18 @@ def test_ingest_main_rebuilds_collection_without_live_ollama(
             captured["documents"] = kwargs["documents"]
             captured["embedding"] = kwargs["embedding"]
             captured["kwargs"] = kwargs
-            return SimpleNamespace()
+            return SimpleNamespace(
+                get=lambda: {"ids": [f"chunk-{i}" for i, _ in enumerate(kwargs["documents"])]}
+            )
 
-    embedding = object()
+    embedding_calls = []
+
+    class FakeEmbeddings:
+        def embed_query(self, text):
+            embedding_calls.append(text)
+            return [1.0]
+
+    embedding = FakeEmbeddings()
     monkeypatch.setattr(ingest, "DOCUMENT_FILE", source)
     monkeypatch.setattr(ingest, "BASE_DIR", tmp_path)
     monkeypatch.setattr(ingest, "DB_DIR", database)
@@ -106,6 +115,7 @@ def test_ingest_main_rebuilds_collection_without_live_ollama(
     ingest.main()
 
     assert database.exists()
+    assert embedding_calls == ["test"]
     assert captured["deleted_old_collection"] is True
     assert captured["embedding"] is embedding
     assert captured["documents"]

@@ -5,7 +5,7 @@ import os
 import pytest
 from langchain_core.documents import Document
 from langchain_ollama import ChatOllama
-
+from types import SimpleNamespace
 
 @pytest.mark.live
 @pytest.mark.skipif(
@@ -24,6 +24,11 @@ def test_live_ollama_can_answer_from_chat_context(chat_module, monkeypatch):
         metadata={"source": "smoke-test.md", "section_title": "Returns"},
     )
     monkeypatch.setattr(
+    chat_module.gate_llm,
+    "invoke",
+    lambda messages: SimpleNamespace(content="ANSWERABLE"),
+    )
+    monkeypatch.setattr(
         chat_module, "retrieve", lambda query: [(document, 0.9)]
     )
     monkeypatch.setattr(
@@ -39,4 +44,4 @@ def test_live_ollama_can_answer_from_chat_context(chat_module, monkeypatch):
     )
 
     assert "30" in answer
-    assert sources == ["Returns"]
+    assert sources == [1]

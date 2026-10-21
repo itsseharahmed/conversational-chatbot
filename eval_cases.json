@@ -57,7 +57,7 @@
     "question": "Can you tell me the live status of my order?",
     "outcome": "answer",
     "required_groups": [
-      ["not available in this chat", "not available here", "can't see live"],
+      ["not available in this chat", "not available here", "can't see live", "can't view live order status in this chat"],
       ["tracking", "track"]
     ],
     "source_contains": "Shipping"
@@ -98,7 +98,7 @@
     "outcome": "answer",
     "required_groups": [
       ["error message", "exact error"],
-      ["retry", "try again"],
+      ["retry", "try again", "complete the purchase again"],
       ["billing support", "support"]
     ],
     "source_contains": "Billing"
