@@ -63,38 +63,61 @@ Each launch without `--session` creates a fresh conversation ID, preventing prio
 
 ## Tests
 
-Activate the virtual environment from the setup instructions, then run:
+Activate the virtual environment using the setup instructions before running tests.
+
+The test suite is divided into deterministic tests and live tests. The answer-quality evaluation can also be run separately to generate a report for manual review.
+
+### Deterministic tests
+
+Run:
 
 ```bash
-python -m pytest
+python -m pytest -m "not live" -v
 ```
 
-The default suite is offline: model calls are mocked, history uses temporary
-SQLite files, and Chroma retrieval uses a temporary database with deterministic
-test embeddings. To run the optional Ollama smoke test, start Ollama, make sure
-the configured chat model is installed, then run this in PowerShell:
+These tests check individual chatbot components and expected behaviours without requiring the full live chatbot pipeline. External model calls are mocked where appropriate, making these tests faster and more consistent.
 
-```powershell
-$env:RUN_LIVE_OLLAMA_TESTS = "1"
-python -m pytest -m live
+They are useful for checking logic such as sensitive-information masking, session handling, safety keyword detection, and other deterministic behaviours.
+
+### Live tests
+
+Start Ollama and ensure the configured chat and embedding models are installed. Make sure the Chroma knowledge base has been populated using `python ingest.py`.
+
+Run:
+
+```bash
+python -m pytest -m live -v -s
 ```
+
+Live tests use the actual Ollama models, retrieval system, and chatbot pipeline rather than mocked model responses.
+
+They check how the chatbot behaves in realistic scenarios, including retrieval, scope classification, refusals, safety handling, and prompt-injection resistance.
+
+The live test suite also includes the automated answer-quality evaluation, so running the full live suite does not require running the evaluation separately.
+
+Because live tests depend on model-generated responses, they take longer and may produce some variation between runs.
 
 ### Answer-quality evaluation
 
-The tests validate code paths; they do not establish that a model consistently
-answers policy questions correctly. Run the separate evaluation against the
-configured knowledge base and local Ollama model after rebuilding the index:
+The answer-quality evaluation uses the representative questions defined in `eval_cases.json`. It checks whether responses include required facts, refuse unsupported or out-of-scope requests when appropriate, avoid forbidden claims, and provide the expected source labels.
 
-```powershell
-python ingest.py
+To run the evaluation as a standalone script and save the results:
+
+```bash
 python evaluate_chatbot.py --json-out evaluation-results.json
 ```
 
-The evaluation checks a small set of representative in-scope and out-of-scope
-questions for required facts, expected refusal behavior, and source labels. Add
-reviewed cases to `eval_cases.json` whenever policies or prompts change. Review
-the generated answers and results manually; keyword checks are a regression
-signal, not a semantic correctness guarantee.
+If the knowledge base has been changed, rebuild it first:
+
+```bash
+python ingest.py
+```
+
+The generated JSON report can be used to inspect individual cases and review the chatbot's responses.
+
+Evaluation cases should be reviewed and updated when the knowledge base, chatbot behaviour, or supported policies change.
+
+**Note:** The evaluation uses rule-based checks, including keywords and expected source labels. Passing these checks does not guarantee that an answer is semantically correct, so manual review remains important.
 
 ## Production readiness
 

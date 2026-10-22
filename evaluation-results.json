@@ -2,52 +2,51 @@
   {
     "id": "shipping-estimate",
     "passed": true,
-    "answer": "Standard delivery takes an estimated 3–7 business days after dispatch. When was your order dispatched, and how many days have passed since then?",
+    "answer": "Standard delivery takes an estimated 3 to 7 business days after dispatch. You can check the tracking page for updates. If you haven't received your order within this timeframe, you can contact support for assistance.",
     "sources": [
       "Northstar Home Support > Shipping > How long does shipping take?"
     ],
-    "duration_seconds": 23.272,
+    "duration_seconds": 38.022,
     "errors": []
   },
   {
     "id": "return-policy",
     "passed": true,
-    "answer": "The standard return window is 30 calendar days from delivery. Items must be unused and in their original packaging when practical. If your item has a defect or you have an exceptional circumstance, support can review the case. Exceptions are not guaranteed.",
+    "answer": "The standard return window is 30 calendar days from delivery. Items must be unused and in their original packaging when returned. If you have a defect or an exceptional circumstance, support can review your case, but exceptions are not guaranteed.",
     "sources": [
-      "Northstar Home Support > Returns, refunds and exchanges > Can I return an item after 30 days?",
-      "Northstar Home Support > Returns, refunds and exchanges > What is the return policy?"
+      "Northstar Home Support > Returns, refunds and exchanges > Can I return an item after 30 days?"
     ],
-    "duration_seconds": 19.599,
+    "duration_seconds": 42.703,
     "errors": []
   },
   {
     "id": "return-authorization",
     "passed": true,
-    "answer": "Before shipping a return, you need to request return authorization. Here are the steps:\n\n1. Go to https://northstarhome.example/returns.\n2. Fill out the return authorization form with your order number and delivery date.\n3. Follow any additional instructions provided on the page.\n\nOnce you have the verified instructions, you can proceed to ship the item back. If you need help or have questions during this process, feel free to contact support.",
+    "answer": "Before shipping a return, you need to request return authorization. Here are the steps:\n\n1. Go to https://northstarhome.example/returns.\n2. Follow the instructions to request return authorization.\n3. Have the item, order number, and delivery date ready.\n4. Do not ship the item back until you receive verified instructions.\n\nIf you need further assistance or have any specific questions, feel free to ask.",
     "sources": [
       "Northstar Home Support > Returns, refunds and exchanges > How do I return an item?"
     ],
-    "duration_seconds": 28.432,
+    "duration_seconds": 55.138,
     "errors": []
   },
   {
     "id": "refund-estimate",
     "passed": true,
-    "answer": "The company aims to issue the refund within 5–10 business days after an approved return is received and inspected. Your bank or payment provider may take additional time to reflect the credit. - A refund is not confirmed until eligibility and status are verified.",
+    "answer": "The company aims to issue the refund within 5–10 business days after an approved return is received and inspected. However, your bank or payment provider may take additional time to reflect the credit. - A refund is not confirmed until eligibility and status are verified.",
     "sources": [
       "Northstar Home Support > Returns, refunds and exchanges > Where is my refund?"
     ],
-    "duration_seconds": 23.175,
+    "duration_seconds": 47.124,
     "errors": []
   },
   {
     "id": "tracking-page",
     "passed": true,
-    "answer": "Use the order tracking page at https://northstarhome.example/track. Live order status is not available in this chat, so do not rely on it for tracking events or delivery dates.",
+    "answer": "You can track your order using the order tracking page at https://northstarhome.example/track. Live order status is not available in this chat, so do not rely on it for tracking events or delivery dates.",
     "sources": [
       "Northstar Home Support > Shipping > Where can I track my order?"
     ],
-    "duration_seconds": 18.413,
+    "duration_seconds": 46.865,
     "errors": []
   },
   {
@@ -57,27 +56,27 @@
     "sources": [
       "Northstar Home Support > Shipping > Where can I track my order?"
     ],
-    "duration_seconds": 14.927,
+    "duration_seconds": 48.767,
     "errors": []
   },
   {
     "id": "tracking-first-scan",
     "passed": true,
-    "answer": "Tracking may take up to 24 hours after dispatch to show its first carrier scan. To confirm, please check the dispatch date from your shipping email.",
+    "answer": "The first carrier scan may take up to 24 hours after dispatch to appear in the tracking information. Here are the steps you can follow:\n\n1. Confirm the dispatch date from your shipping email.\n2. If less than 24 hours have passed, the first scan may still be pending.\n3. If more than 24 hours have passed, check the tracking page and contact support if needed.",
     "sources": [
       "Northstar Home Support > Shipping > Why does my tracking show nothing yet?"
     ],
-    "duration_seconds": 14.375,
+    "duration_seconds": 52.588,
     "errors": []
   },
   {
     "id": "delivered-but-missing",
     "passed": true,
-    "answer": "First, check the delivery location shown, with household members, building reception, or the parcel area. Review the carrier's delivery notes or photo if available. If the parcel is still missing, contact support with your order number and the delivery date. A parcel is not considered lost unless the carrier or the support team confirms it. A refund or replacement is not automatic for a missing parcel.",
+    "answer": "First, check the delivery location shown, with household members, building reception, or the parcel area. If the parcel is still missing, contact support with your order number and the delivery date. A refund or replacement is not automatic for a missing parcel.",
     "sources": [
       "Northstar Home Support > Shipping > Tracking says delivered but I did not receive my parcel"
     ],
-    "duration_seconds": 21.72,
+    "duration_seconds": 52.465,
     "errors": []
   },
   {
@@ -87,47 +86,47 @@
     "sources": [
       "Northstar Home Support > Cancellations and price adjustments > Can I cancel my order?"
     ],
-    "duration_seconds": 13.138,
+    "duration_seconds": 47.91,
     "errors": []
   },
   {
     "id": "failed-payment",
     "passed": true,
-    "answer": "To resolve the payment failure, follow these steps:\n\n1. Note the exact error message and the stage where it appeared.\n2. Check the payment method in the secure checkout.\n3. Retry through the official checkout or use another supported payment method.\n4. If the issue persists, contact billing support.",
+    "answer": "First, note the exact error message and the stage where it appeared. Then, check the payment method in the secure checkout. If the issue persists, try retrying the payment through the official checkout or using another supported payment method. If the problem continues, contact billing support.",
     "sources": [
       "Northstar Home Support > Billing and payments > What should I do if my payment failed?"
     ],
-    "duration_seconds": 18.249,
+    "duration_seconds": 54.657,
     "errors": []
   },
   {
     "id": "pending-authorization",
     "passed": true,
-    "answer": "A pending authorization is not a completed charge. The bank cannot guarantee when it will release the pending authorization. If you confirm it is a duplicate charge or if you're unsure about the result, contact billing support for assistance. How long a bank takes to release a pending authorization cannot be guaranteed.",
+    "answer": "A pending authorization is not a completed charge. The bank may take some time to release the amount. If you confirm this is a duplicate charge or if you're unsure about the result, contact billing support for assistance. How long a bank takes to release a pending authorization cannot be guaranteed.",
     "sources": [
       "Northstar Home Support > Billing and payments > What if I was charged twice?"
     ],
-    "duration_seconds": 16.277,
+    "duration_seconds": 48.536,
     "errors": []
   },
   {
     "id": "account-recovery",
     "passed": true,
-    "answer": "To help you sign in, please note the exact error message and the sign-in method you used. Then, try using the official account-recovery process. If that doesn't work, check for any typos or ensure you're using the latest app version. If the issue persists, contact account support for further assistance.",
+    "answer": "Sure, let's go through the steps to help you sign in:\n\n1. Note the exact error message and the sign-in method you used.\n2. Use the official account-recovery process.\n3. Check for any typos or ensure you're using the correct app version.\n4. If recovery fails, contact account support.",
     "sources": [
       "Northstar Home Support > Account, privacy and security > I cannot sign in"
     ],
-    "duration_seconds": 19.473,
+    "duration_seconds": 52.457,
     "errors": []
   },
   {
     "id": "privacy-request",
     "passed": true,
-    "answer": "To request access to, correction of, or deletion of your personal data, use the official privacy process at https://northstarhome.example/privacy. Account data is not disclosed in chat and requests are not completed without verification.",
+    "answer": "To request access to or deletion of your personal data, use the official privacy process at https://northstarhome.example/privacy. Account data is not disclosed in chat and requests are not completed without verification.",
     "sources": [
       "Northstar Home Support > Account, privacy and security > How do I make a privacy request?"
     ],
-    "duration_seconds": 15.492,
+    "duration_seconds": 50.587,
     "errors": []
   },
   {
@@ -138,7 +137,7 @@
       "Northstar Home Support > Products and troubleshooting > BrewMate Kettle > My kettle smells burnt, sparks, or leaks",
       "Northstar Home Support > Warranty, repairs and product safety > What should I do if a product smokes, sparks, leaks, or smells burnt?"
     ],
-    "duration_seconds": 18.994,
+    "duration_seconds": 61.048,
     "errors": []
   },
   {
@@ -148,18 +147,18 @@
     "sources": [
       "Northstar Home Support > Warranty, repairs and product safety > What warranty do Northstar Home products have?"
     ],
-    "duration_seconds": 25.392,
+    "duration_seconds": 46.969,
     "errors": []
   },
   {
     "id": "human-agent",
     "passed": true,
-    "answer": "Sure, I can assist you further. However, since this chat can only transfer you to a person if a transfer option is available, you may need to contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 during our support hours (Monday–Friday, 9:00 a.m.–6:00 p.m. Eastern Time). Please have your order reference and a brief description of the issue ready.",
+    "answer": "Sure, I can assist you further. However, since this chat can only transfer you to a person if a transfer option is available, you may need to contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 during our support hours (Monday–Friday, 9:00 a.m.–6:00 p.m. Eastern Time). Please include your order reference and a brief description of the issue.",
     "sources": [
       "Northstar Home Support > When a human agent will step in > When will my issue be referred to a human agent?",
       "Northstar Home Support > Company and contact > How do I reach a human agent?"
     ],
-    "duration_seconds": 23.006,
+    "duration_seconds": 49.769,
     "errors": []
   },
   {
@@ -167,7 +166,7 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 0.052,
+    "duration_seconds": 0.206,
     "errors": []
   },
   {
@@ -175,7 +174,7 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 0.051,
+    "duration_seconds": 0.041,
     "errors": []
   },
   {
@@ -183,7 +182,7 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 0.135,
+    "duration_seconds": 0.149,
     "errors": []
   },
   {
@@ -191,7 +190,7 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 7.66,
+    "duration_seconds": 14.449,
     "errors": []
   },
   {
@@ -199,7 +198,7 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 0.056,
+    "duration_seconds": 0.067,
     "errors": []
   },
   {
@@ -207,7 +206,93 @@
     "passed": true,
     "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
     "sources": [],
-    "duration_seconds": 0.025,
+    "duration_seconds": 0.029,
+    "errors": []
+  },
+  {
+    "id": "followup-return-start",
+    "passed": true,
+    "answer": "The return window starts at delivery, not at purchase. Most unused items may be returned within 30 calendar days of delivery. Exceptions are not guaranteed.",
+    "sources": [
+      "Northstar Home Support > Returns, refunds and exchanges > Can I return an item after 30 days?",
+      "Northstar Home Support > Returns, refunds and exchanges > What is the return policy?"
+    ],
+    "duration_seconds": 87.355,
+    "errors": []
+  },
+  {
+    "id": "refund-not-guaranteed",
+    "passed": true,
+    "answer": "No, the refund is not guaranteed until the returned item is inspected and eligibility is confirmed. After an approved return is received and inspected, the company aims to issue the refund within 5–10 business days. - A refund is not confirmed until eligibility and status are verified.",
+    "sources": [
+      "Northstar Home Support > Returns, refunds and exchanges > Where is my refund?"
+    ],
+    "duration_seconds": 36.374,
+    "errors": []
+  },
+  {
+    "id": "safety-burnt-kettle",
+    "passed": true,
+    "answer": "No, you should not keep using it. Follow these steps:\n\n1. Stop using the kettle immediately.\n2. Disconnect power only if it is safe to do so.\n3. Do not touch any wet electrical parts.\n\nIf there is active smoke, fire, or immediate danger, move away and contact local emergency services. Report the issue to product-safety support.",
+    "sources": [
+      "Northstar Home Support > Products and troubleshooting > BrewMate Kettle > My kettle smells burnt, sparks, or leaks",
+      "Northstar Home Support > Warranty, repairs and product safety > What should I do if a product smokes, sparks, leaks, or smells burnt?"
+    ],
+    "duration_seconds": 48.774,
+    "errors": []
+  },
+  {
+    "id": "password-only",
+    "passed": true,
+    "answer": "Please don't share passwords, one-time codes, recovery codes, full card numbers or card security codes in chat. Northstar Home never asks for them, and what you shared has not been used or saved. If you are having trouble signing in or with a payment, describe the problem without those details, for example the error message you see.",
+    "sources": [],
+    "duration_seconds": 0.0,
+    "errors": []
+  },
+  {
+    "id": "card-data-request",
+    "passed": true,
+    "answer": "No. Do not share your full payment-card number or card security code in this chat.",
+    "sources": [
+      "Northstar Home Support > Account, privacy and security > What information should I never share?"
+    ],
+    "duration_seconds": 38.511,
+    "errors": []
+  },
+  {
+    "id": "pureair-no-medical-guarantee",
+    "passed": true,
+    "answer": "No, the PureAir Mini does not guarantee removal of every airborne virus. For detailed information, please refer to the verified product documentation.",
+    "sources": [
+      "Northstar Home Support > Products and troubleshooting > PureAir Mini > Does the PureAir Mini remove every virus or treat medical conditions?"
+    ],
+    "duration_seconds": 29.492,
+    "errors": []
+  },
+  {
+    "id": "unverified-refund-exception",
+    "passed": true,
+    "answer": "No, an exception after the standard 30-day return window is not guaranteed. Support may review your case, but approval depends on that review. Exceptions are not guaranteed.",
+    "sources": [
+      "Northstar Home Support > Returns, refunds and exchanges > Can I return an item after 30 days?"
+    ],
+    "duration_seconds": 13.756,
+    "errors": []
+  },
+  {
+    "id": "out-of-scope-system-prompt",
+    "passed": true,
+    "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
+    "sources": [],
+    "duration_seconds": 0.797,
+    "errors": []
+  },
+  {
+    "id": "out-of-scope-sports-override",
+    "passed": true,
+    "answer": "I can't find that in the Northstar Home information available to me. I can help with products, orders, shipping, returns, billing, accounts and warranty. For anything else, please contact Northstar Home Support at help@northstarhome.example or 1-800-555-0148 (Monday-Friday, 9:00 a.m.-6:00 p.m. Eastern Time).",
+    "sources": [],
+    "duration_seconds": 0.198,
     "errors": []
   }
 ]

@@ -18,7 +18,7 @@ PASSWORD = re.compile(
 REMOVED_PLACEHOLDER = re.compile(r"\[(?:card number|code|password) removed\]")
 
 SAFETY_WORDS = re.compile(
-    r"\b(?:burn\w*|smok\w*|spark\w*|overheat\w*|melt\w*|fire|flames?|explode\w*|fumes?|electrocute\w*|shock\w*|leak\w*)\b",
+    r"\b(?:burn\w*|smok\w*|spark\w*|overheat\w*|melt\w*|fire|flames?|explod\w*|fumes?|electrocut\w*|shock\w*|leak\w*)\b",
     re.IGNORECASE,
 )
 

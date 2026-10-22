@@ -128,3 +128,26 @@ def test_run_evaluation_records_passes_failures_and_exceptions():
     assert results[0]["passed"] is True
     assert results[1]["passed"] is False
     assert results[1]["errors"] == ["RuntimeError: model unavailable"]
+
+
+def test_evaluation_uses_case_history():
+    captured = []
+    def answer(question, history):
+        captured.append((question, history))
+        return "30 days from delivery", []
+    cases = [{"id": "followup", "question": "When does it start?", "outcome": "answer", "history": [["user", "What is the return window?"]]}]
+    assert run_evaluation(cases, answer)[0]["passed"]
+    assert captured == [("When does it start?", [["user", "What is the return window?"]])]
+
+
+def test_evaluation_forbidden_groups():
+    case = {"id": "unsafe", "outcome": "answer", "forbidden_groups": [["refund", "guaranteed"]]}
+    assert grade_case(case, "Your refund is guaranteed", []) == ["contains forbidden combination: refund and guaranteed"]
+    assert grade_case(case, "Your refund requires review", []) == []
+
+
+def test_evaluation_rejects_duplicate_ids(tmp_path):
+    path = tmp_path / "cases.json"
+    path.write_text(json.dumps([{"id":"a", "question":"one", "outcome":"answer"}, {"id":"a", "question":"two", "outcome":"answer"}]))
+    with pytest.raises(ValueError, match="Duplicate"):
+        load_cases(path)

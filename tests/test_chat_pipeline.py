@@ -1,12 +1,13 @@
-"""Tests for retrieval, prompt gates, citations, and real local Chroma wiring."""
+"""Regression tests for unique deterministic/error-path behavior.
+
+Real end-to-end behavior is covered by test_live_*.py.
+"""
 
 from types import SimpleNamespace
-
 import pytest
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-
 
 def test_retrieve_filters_by_relevance_threshold(chat_module, monkeypatch):
     relevant = Document(page_content="Return policy.", metadata={"source": "returns.md"})
@@ -159,103 +160,6 @@ def test_citations_resolve_sources_and_strip_from_display(chat_module):
     )
 
 
-@pytest.mark.parametrize(
-    ("verdict", "expected"),
-    [
-        ("ANSWERABLE", True),
-        ("NO_EVIDENCE", False),
-        ("OUT_OF_SCOPE", False),
-        ("YES", False),
-        ("ANSWERABLE with explanation", False),
-    ],
-)
-def test_scope_gate_interprets_model_verdict(
-    chat_module, monkeypatch, verdict, expected
-):
-    prompts = []
-    monkeypatch.setattr(
-        chat_module.gate_llm,
-        "invoke",
-        lambda messages: prompts.append(messages) or SimpleNamespace(content=verdict),
-    )
-
-    assert chat_module.is_answerable(
-        "What is the return window?",
-        [("user", "A prior question")],
-        "Returns are accepted within 30 days.",
-    ) is expected
-    assert "Returns are accepted within 30 days." in str(prompts[0])
-    assert "OUT_OF_SCOPE only for a clearly unrelated topic" in str(prompts[0])
-
-
-def test_scope_gate_no_verdict_prevents_answer_generation(
-    chat_module, monkeypatch
-):
-    document = Document(
-        page_content="Returns follow the published policy.",
-        metadata={"source": "returns.md"},
-    )
-    monkeypatch.setattr(
-        chat_module,
-        "retrieve",
-        lambda query: [(document, 0.99)],
-    )
-    monkeypatch.setattr(
-        chat_module,
-        "build_context",
-        lambda results: "Returns follow the published policy.",
-    )
-    monkeypatch.setattr(
-        chat_module.gate_llm,
-        "invoke",
-        lambda messages: SimpleNamespace(content="OUT_OF_SCOPE"),
-    )
-    monkeypatch.setattr(
-        chat_module.answer_llm,
-        "invoke",
-        lambda messages: pytest.fail("Answer model called after gate refusal"),
-    )
-
-    answer, sources = chat_module._answer_question("What is the return policy?", [])
-
-    assert answer == chat_module.REFUSAL
-    assert sources == []
-
-
-def test_scope_gate_yes_allows_grounded_answer(chat_module, monkeypatch):
-    document = Document(
-        page_content="Returns are accepted within 30 calendar days.",
-        metadata={"source": "returns.md", "section_title": "Returns"},
-    )
-    monkeypatch.setattr(
-        chat_module, "retrieve", lambda query: [(document, 0.65)]
-    )
-    monkeypatch.setattr(
-        chat_module,
-        "build_context",
-        lambda results: "[Source 1: Returns]\n" + document.page_content,
-    )
-    monkeypatch.setattr(
-        chat_module.gate_llm,
-        "invoke",
-        lambda messages: SimpleNamespace(content="ANSWERABLE"),
-    )
-    monkeypatch.setattr(
-        chat_module.answer_llm,
-        "invoke",
-        lambda messages: SimpleNamespace(
-            content="Returns are accepted within 30 days. [Source 1]"
-        ),
-    )
-
-    answer, sources = chat_module._answer_question(
-        "What is the return window?", []
-    )
-
-    assert "30 days" in answer
-    assert sources == [1]
-
-
 def test_missing_source_line_gets_one_formatting_retry(chat_module, monkeypatch):
     document = Document(
         page_content="Standard delivery takes 3-7 business days.",
@@ -307,21 +211,6 @@ def test_rewrite_question_falls_back_on_unusable_model_output(
     ) == question
 
 
-def test_rewrite_question_rejects_unrelated_topic(chat_module, monkeypatch):
-    question = "How long does it take?"
-    monkeypatch.setattr(
-        chat_module.llm,
-        "invoke",
-        lambda messages: SimpleNamespace(
-            content="What is the price of a television?"
-        ),
-    )
-
-    assert chat_module.rewrite_question(
-        question, [("user", "How long does shipping take?")]
-    ) == question
-
-
 def test_rewrite_question_uses_valid_standalone_output(chat_module, monkeypatch):
     monkeypatch.setattr(
         chat_module.llm,
@@ -336,61 +225,3 @@ def test_rewrite_question_uses_valid_standalone_output(chat_module, monkeypatch)
         [("user", "How long does shipping take?")],
     ) == "How long does shipping take?"
 
-
-class KeywordEmbeddings(Embeddings):
-    """Deterministic vectors let Chroma integration tests run without Ollama."""
-
-    @staticmethod
-    def _vector(text):
-        return [1.0, 0.0] if "return" in text.lower() else [0.4, 0.916515]
-
-    def embed_documents(self, texts):
-        return [self._vector(text) for text in texts]
-
-    def embed_query(self, text):
-        return self._vector(text)
-
-
-def test_real_chroma_retrieval_and_chat_pipeline(
-    chat_module, monkeypatch, tmp_path
-):
-    documents = [
-        Document(
-            page_content="Most items can be returned within 30 calendar days.",
-            metadata={"source": "returns.md", "section_title": "Returns"},
-        ),
-        Document(
-            page_content="Standard shipping takes three to seven business days.",
-            metadata={"source": "shipping.md", "section_title": "Shipping"},
-        ),
-    ]
-    vectorstore = Chroma.from_documents(
-        documents=documents,
-        embedding=KeywordEmbeddings(),
-        collection_name="chat-test",
-        persist_directory=str(tmp_path / "chroma"),
-    )
-    monkeypatch.setattr(chat_module, "vectorstore", vectorstore)
-    monkeypatch.setattr(chat_module, "DEBUG", False)
-    monkeypatch.setattr(
-        chat_module.gate_llm,
-        "invoke",
-        lambda messages: SimpleNamespace(content="ANSWERABLE"),
-    )
-    monkeypatch.setattr(
-        chat_module.answer_llm,
-        "invoke",
-        lambda messages: SimpleNamespace(
-            content="Most items can be returned within 30 days. [Source 1]"
-        ),
-    )
-
-    results = chat_module.retrieve("What is the return window?")
-    answer, sources = chat_module._answer_question(
-        "What is the return window?", []
-    )
-
-    assert len(results) == 1
-    assert results[0][0].metadata["source"] == "returns.md"
-    assert "30 days" in answer
-    assert sources == [1]

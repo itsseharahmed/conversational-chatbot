@@ -3,6 +3,7 @@
 import argparse
 import json
 import time
+import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,56 +13,67 @@ DEFAULT_CASES = BASE_DIR / "eval_cases.json"
 
 
 def load_cases(path):
-    with Path(path).open(encoding="utf-8") as cases_file:
-        cases = json.load(cases_file)
-
+    """Validate test specifications before making expensive model calls."""
+    with Path(path).open(encoding="utf-8") as stream:
+        cases = json.load(stream)
     if not isinstance(cases, list) or not cases:
         raise ValueError("Evaluation cases must be a non-empty JSON list.")
-
+    seen = set()
     for case in cases:
-        if not isinstance(case, dict) or not case.get("id") or not case.get("question"):
+        if not isinstance(case, dict) or not isinstance(case.get("id"), str) or not case["id"] or not isinstance(case.get("question"), str) or not case["question"]:
             raise ValueError("Each evaluation case needs an id and a question.")
+        if case["id"] in seen:
+            raise ValueError(f"Duplicate evaluation id: {case['id']}")
+        seen.add(case["id"])
         if case.get("outcome") not in {"answer", "refusal"}:
-            raise ValueError(
-                f"Evaluation case {case.get('id')!r} has an invalid outcome."
+            raise ValueError(f"Evaluation case {case['id']!r} has an invalid outcome.")
+        for key in ("required_groups", "forbidden_groups"):
+            groups = case.get(key, [])
+            if not isinstance(groups, list) or any(
+                not isinstance(group, list) or not group or
+                any(not isinstance(term, str) or not term for term in group)
+                for group in groups
+            ):
+                raise ValueError(f"Evaluation case {case['id']!r} has an invalid {key} value.")
+        for key in ("forbidden_terms",):
+            value = case.get(key, [])
+            if not isinstance(value, list) or any(not isinstance(t, str) or not t for t in value):
+                raise ValueError(f"Evaluation case {case['id']!r} has invalid {key}.")
+        if "history" in case and (
+            not isinstance(case["history"], list) or any(
+                not isinstance(turn, list) or len(turn) != 2 or
+                turn[0] not in {"user", "assistant"} or not isinstance(turn[1], str)
+                for turn in case["history"]
             )
-        if any(
-            not isinstance(group, list) or not group or
-            any(not isinstance(term, str) or not term for term in group)
-            for group in case.get("required_groups", [])
         ):
-            raise ValueError(
-                f"Evaluation case {case['id']!r} has an invalid required_groups value."
-            )
-
+            raise ValueError(f"Evaluation case {case['id']!r} has invalid history.")
+        if "source_contains" in case and not isinstance(case["source_contains"], str):
+            raise ValueError(f"Evaluation case {case['id']!r} has invalid source_contains.")
     return cases
 
 
 def grade_case(case, answer, sources):
-    """Apply transparent, human-readable checks to one generated answer."""
+    """Conservative, explainable checks; not a semantic proof of correctness."""
     errors = []
-    normalized_answer = answer.casefold()
-
+    normalized = re.sub(r"\s+", " ", answer.casefold())
+    refusal = "i can't find that" in normalized
     if case["outcome"] == "refusal":
-        if "i can't find that" not in normalized_answer:
+        if not refusal:
             errors.append("expected the standard refusal")
-    elif "i can't find that" in normalized_answer:
+    elif refusal:
         errors.append("unexpected refusal for an answerable question")
-
     for group in case.get("required_groups", []):
-        if not any(term.casefold() in normalized_answer for term in group):
+        if not any(term.casefold() in normalized for term in group):
             errors.append(f"missing expected fact: {' or '.join(group)}")
-
     for term in case.get("forbidden_terms", []):
-        if term.casefold() in normalized_answer:
+        if term.casefold() in normalized:
             errors.append(f"contains forbidden claim: {term}")
-
+    for group in case.get("forbidden_groups", []):
+        if all(term.casefold() in normalized for term in group):
+            errors.append(f"contains forbidden combination: {' and '.join(group)}")
     expected_source = case.get("source_contains")
-    if expected_source and not any(
-        expected_source.casefold() in source.casefold() for source in sources
-    ):
+    if expected_source and not any(expected_source.casefold() in source.casefold() for source in sources):
         errors.append(f"missing expected source: {expected_source}")
-
     return errors
 
 
@@ -101,7 +113,7 @@ def run_evaluation(cases, answer_question):
     for case in cases:
         started = time.perf_counter()
         try:
-            answer, sources = answer_question(case["question"], [])
+            answer, sources = answer_question(case["question"], case.get("history", []))
             errors = grade_case(case, answer, sources)
             result = {
                 "id": case["id"],

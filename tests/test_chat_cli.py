@@ -1,10 +1,11 @@
-"""CLI behavior tests use scripted input and never contact a model."""
+"""Regression tests for unique deterministic/error-path behavior.
+
+Real end-to-end behavior is covered by test_live_*.py.
+"""
 
 from types import SimpleNamespace
 import uuid
-
 import pytest
-
 
 def test_cli_commands_and_successful_turn(chat_module, monkeypatch, capsys):
     assert chat_module.DEBUG is False
@@ -181,3 +182,4 @@ def test_cli_session_argument_and_fresh_default(chat_module, monkeypatch, capsys
 
     assert "Session: 00000000-0000-0000-0000-000000000001" in first_output
     assert "Session: 00000000-0000-0000-0000-000000000002" in second_output
+

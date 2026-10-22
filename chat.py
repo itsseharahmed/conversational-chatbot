@@ -12,11 +12,17 @@ import chat_citations
 import chat_history
 import chat_safety
 import chat_prompts
+import os
 
 
 #paths
 BASE_DIR = Path(__file__).resolve().parent
-DB_DIR = BASE_DIR / "data" / "chroma"
+DB_DIR = Path(
+    os.environ.get(
+        "CHATBOT_DB_DIR",
+        BASE_DIR / "data" / "chroma"
+    )
+)
 HISTORY_DB = BASE_DIR / "data" / "history.sqlite3"
 
 #models
@@ -332,9 +338,18 @@ def is_answerable(question, history, context):
     )
 
     response = gate_llm.invoke([
-        SystemMessage(content="Classify scope and evidence conservatively."),
+        SystemMessage(content=
+                        "You are a Northstar Home scope and evidence classifier. "
+                        "Apply the approved scope policy and classification rules "
+                        "in the user message. Do not reject an in-scope customer "
+                        "safety question merely because it mentions sensitive "
+                        "information. Return exactly one of: ANSWERABLE, "
+                        "NO_EVIDENCE, OUT_OF_SCOPE."
+                    ),
         HumanMessage(content=gate_prompt),
     ])
+
+    print(f"\n[DEBUG] Scope gate raw response: {response.content!r}")
 
     verdict = str(response.content).strip().upper()
 
